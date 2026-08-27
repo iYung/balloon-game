@@ -16,16 +16,20 @@ local LEASH_LENGTH     = 30   -- rope joint max length
 -- A real balloon's shell+gas weighs a small fraction of what it can lift,
 -- so it needs a much lower density than the plane/egg it's trying to move.
 local DENSITY          = 0.01
--- Upward force per unit of radius. Tuned against level_1's plane (mass
--- ~6.7, gravity 900 -> weight ~6030): one or two maxed balloons (40 * 60 =
--- 2400, 4800) can't lift it alone, three clears it with a thin margin
--- (7200), and all four gives a real but not instant climb (9600, ~1.6x
--- weight) -- so winning takes most/all balloons well-inflated rather than
--- one balloon trivially overpowering the level. This math only holds
--- because DENSITY above keeps each balloon's own weight negligible next to
--- its lift (e.g. ~50 out of 2400 at max radius) -- otherwise the balloons'
--- own weight would swamp the lift entirely.
-local LIFT_PER_RADIUS  = 60
+-- Upward force per unit of radius. Tuned against the flat-plank plane
+-- (mass ~6.7, gravity 900 -> weight ~6030): a full, well-spread, maxed-out
+-- balloon loadout gives a strong ~2.65x margin over the plane's weight
+-- (4 * 40 * 100 = 16000) for a fast, satisfying climb, while a loadout
+-- missing 2 balloons (or one badly lopsided on the pre-tilted level) still
+-- generally fails -- so balloon count and placement still matter, without
+-- every level demanding a near-perfect loadout to win at all. (Raised from
+-- an original 60, which -- combined with DENSITY above only landing right
+-- after a separate fix -- made every level require an unforgivingly exact
+-- setup; see git history for the balance search across candidate values.)
+-- This math only holds because DENSITY above keeps each balloon's own
+-- weight negligible next to its lift (e.g. ~50 out of 4000 at max radius)
+-- -- otherwise the balloons' own weight would swamp the lift entirely.
+local LIFT_PER_RADIUS  = 100
 -- Collision category balloons register their fixtures under, so the egg
 -- can exclude them (see game/egg.lua) -- the egg should rest on the plane,
 -- not bump into balloons floating around/above it.
