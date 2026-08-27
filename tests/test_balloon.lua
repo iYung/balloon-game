@@ -112,4 +112,39 @@ do
     print("PASS: balloon: attached balloon rises under apply_lift over several steps")
 end
 
+-- Test 4: the plane-side anchor stays outside a fully-inflated balloon's
+-- own circle once the rope settles taut. Balloon:draw() draws a connecting
+-- line from the balloon's center to this anchor; if the anchor were inside
+-- the balloon's own filled circle, that line would be entirely hidden
+-- under the balloon (this was previously true: LEASH_LENGTH was 30,
+-- shorter than MAX_RADIUS's 40, so a well-inflated balloon completely
+-- swallowed the line). LEASH_LENGTH must stay comfortably larger than
+-- MAX_RADIUS for the connector to actually be visible in play.
+do
+    local world   = love.physics.newWorld(0, 0, true) -- no gravity: isolate the rope settling
+    local balloon = Balloon.new(world, 0, 0)
+    while balloon.radius < Balloon.MAX_RADIUS do
+        balloon:inflate(1 / 60)
+    end
+
+    local plane = FakePlane.new(world, 0, 0)
+    balloon:attach(plane, 0, 0)
+
+    for _ = 1, 120 do
+        balloon:apply_lift()
+        world:update(1 / 60)
+    end
+
+    local bx, by = balloon.body:getPosition()
+    local _, _, ax, ay = balloon.joint:getAnchors()
+    local dist = math.sqrt((bx - ax) ^ 2 + (by - ay) ^ 2)
+
+    assert(dist > balloon.radius,
+        "the plane anchor should sit outside a maxed-out balloon's own circle (dist=" ..
+        tostring(dist) .. ", radius=" .. tostring(balloon.radius) ..
+        ") or the connecting line drawn in Balloon:draw() would be entirely hidden")
+
+    print("PASS: balloon: plane anchor stays outside a maxed-out balloon's circle (connecting line stays visible)")
+end
+
 print("ALL TESTS PASSED")
