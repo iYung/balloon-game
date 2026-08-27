@@ -63,4 +63,22 @@ function SceneManager:draw()
     end
 end
 
+function SceneManager:mousepressed(x, y, button)
+    if self.current and self.current.mousepressed then
+        self.current:mousepressed(x, y, button)
+    end
+end
+
+function SceneManager:mousemoved(x, y)
+    if self.current and self.current.mousemoved then
+        self.current:mousemoved(x, y)
+    end
+end
+
+function SceneManager:mousereleased(x, y, button)
+    if self.current and self.current.mousereleased then
+        self.current:mousereleased(x, y, button)
+    end
+end
+
 return SceneManager
