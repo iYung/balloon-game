@@ -1,9 +1,9 @@
 # Balloon Lift
 
 A small physics puzzle game built with LÖVE 11.5. Each level is an egg
-resting on a plane (a rigid platform — a flat plank, a tilted plank, or a
-curved bowl). Attach balloons to the plane to lift it off the ground without
-spilling the egg.
+resting on a plane (a rigid platform — a curved bowl, a flat plank, a tilted
+plank, or that same bowl flipped into a dome). Attach balloons to the plane
+to lift it off the ground without spilling the egg.
 
 ## How to play
 

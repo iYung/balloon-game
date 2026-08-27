@@ -1,9 +1,10 @@
 local Level1 = require("game/levels/level_1")
 local Level2 = require("game/levels/level_2")
 local Level3 = require("game/levels/level_3")
+local Level4 = require("game/levels/level_4")
 
 local Levels = {
-    list = { Level1, Level2, Level3 },
+    list = { Level1, Level2, Level3, Level4 },
 }
 
 -- Returns the level following `level` in Levels.list (matched by identity),

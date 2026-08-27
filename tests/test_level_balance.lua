@@ -29,12 +29,30 @@ local LevelScene = require("game/scenes/level_scene")
 local Balloon    = require("game/balloon")
 local Levels     = require("game/levels/init")
 
--- Evenly spaced attach points across local x in [-100, 100], matching the
--- placements manually verified against all 3 levels during balance tuning.
-local function spread_attach_points(n)
+-- Evenly spaced attach points, shape-aware: a "rectangle" plane's surface
+-- is a flat local y=-10 regardless of x, but an "arc" plane's surface
+-- curves (and, for a flipped/dome plane like level_4, can sit far from the
+-- body origin -- see level_4.lua) so points must be computed along the
+-- actual arc at its outer radius, not blindly copied from the rectangle
+-- convention. Points spread across local x in [-100, 100] (rectangle) or
+-- across the arc's actual span (arc) -- both manually verified against
+-- their respective levels during balance tuning.
+local function spread_attach_points(plane_spec, n)
+    if plane_spec.shape == "arc" then
+        local outer_r = plane_spec.radius + (plane_spec.thickness or 20)
+        local span    = plane_spec.span
+        local points  = {}
+        for i = 1, n do
+            local theta = (n == 1) and 0 or (-span / 2 + (i - 1) * (span / (n - 1)))
+            points[i] = { x = outer_r * math.sin(theta), y = outer_r * math.cos(theta) }
+        end
+        return points
+    end
+
     local points = {}
     for i = 1, n do
-        points[i] = (n == 1) and 0 or (-100 + (i - 1) * (200 / (n - 1)))
+        local x = (n == 1) and 0 or (-100 + (i - 1) * (200 / (n - 1)))
+        points[i] = { x = x, y = -10 }
     end
     return points
 end
@@ -45,7 +63,7 @@ local function attach_all(scene, n, attach_points)
         while balloon.radius < Balloon.MAX_RADIUS do
             balloon:inflate(1 / 60)
         end
-        balloon:attach(scene.plane, attach_points[i], -10)
+        balloon:attach(scene.plane, attach_points[i].x, attach_points[i].y)
     end
 end
 
@@ -64,7 +82,7 @@ for _, level in ipairs(Levels.list) do
     -- All balloons, well-spread and fully inflated, should win.
     do
         local scene = LevelScene.new(level)
-        attach_all(scene, level.balloon_count, spread_attach_points(level.balloon_count))
+        attach_all(scene, level.balloon_count, spread_attach_points(level.plane, level.balloon_count))
         scene.running = true
         local won, ticks = run_until_settled(scene, MAX_TICKS)
         assert(won, level.name .. ": a full, well-spread, fully-inflated balloon loadout should win, but it "
@@ -79,7 +97,7 @@ for _, level in ipairs(Levels.list) do
     -- share the same difficulty curve (see comment above re: level_1).
     do
         local scene = LevelScene.new(level)
-        attach_all(scene, 1, spread_attach_points(1))
+        attach_all(scene, 1, spread_attach_points(level.plane, 1))
         scene.running = true
         local won = run_until_settled(scene, MAX_TICKS)
         assert(not won, level.name ..

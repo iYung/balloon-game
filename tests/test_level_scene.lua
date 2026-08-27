@@ -57,8 +57,11 @@ do
 
     assert(balloon.radius > Balloon.MIN_RADIUS,
         "holding a dragged balloon over the pump should grow its radius, got " .. tostring(balloon.radius))
+    assert(balloon.inflating == true,
+        "balloon.inflating should be true while held over the pump (drives the ghost-preview draw)")
 
     scene:mousereleased(px, py, 1)
+    assert(balloon.inflating == false, "balloon.inflating should clear on release")
 
     print("PASS: level_scene: dragging a balloon onto the pump grows its radius")
 end

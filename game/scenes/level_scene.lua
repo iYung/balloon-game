@@ -107,19 +107,22 @@ function LevelScene:_build()
     self.fail_bar.color = { 0.9, 0.2, 0.2, 1 }
     self.drawer:add(self.fail_bar, 2)
 
-    -- Reset the camera to dead-center on the plane -- the same point
-    -- update()'s camera:follow() tracks once running, so there's no visual
-    -- snap when Play is pressed. A fixed (0, 0) doesn't reliably show
-    -- "plane, egg, shelf, pump all visible" (the design's requirement for
-    -- the paused view): level_1's shelf/pump sit at y=400/450 while the
-    -- plane sits at y=300, comfortably outside a 720-tall viewport centered
-    -- on world (0, 0). Centering on the plane itself keeps the plane fixed
-    -- at screen-center at all times and still leaves enough of the 720-tall
-    -- viewport below it to cover the shelf/pump for all 3 shipped levels.
-    -- This also fixes a fail-reset leaving the camera wherever it drifted
-    -- to while following the falling plane mid-run.
-    self.camera.x = self.level.plane.x
-    self.camera.y = self.level.plane.y
+    -- Reset the camera to dead-center on the plane's true centroid (Box2D's
+    -- fixture-weighted center of mass -- see Plane:centroid_y()), not its
+    -- raw body origin. Those coincide for a "rectangle" plane, but an "arc"
+    -- plane's origin can sit far from the visible material (e.g. a "dome"
+    -- level built by flipping a bowl 180 deg deliberately keeps its origin
+    -- radius+thickness away from the surface the egg actually rests on) --
+    -- centering on the origin in that case would frame empty space instead
+    -- of the plane/egg/shelf/pump. This is the same point update()'s
+    -- camera:follow() tracks once running, so there's no visual snap when
+    -- Play is pressed, and it also fixes a fail-reset leaving the camera
+    -- wherever it drifted to while following the falling plane mid-run.
+    do
+        local cx, cy = self.plane.body:getWorldCenter()
+        self.camera.x = cx
+        self.camera.y = cy
+    end
 
     self.running  = false
     self.won      = false
@@ -239,6 +242,7 @@ function LevelScene:mousereleased(x, y, button)
 
     local balloon = self.dragging
     self.dragging = nil
+    balloon.inflating = false
 
     if self.running then return end
 
@@ -260,7 +264,9 @@ function LevelScene:update(dt)
     -- dragging can only be initiated while paused, per mousepressed).
     if self.dragging and not self.running then
         local bx, by = self.dragging.body:getPosition()
-        if self.pump:overlaps(bx, by) then
+        local over_pump = self.pump:overlaps(bx, by)
+        self.dragging.inflating = over_pump
+        if over_pump then
             self.dragging:inflate(dt)
         end
     end
@@ -284,7 +290,7 @@ function LevelScene:update(dt)
         return
     end
 
-    local px, py = self.plane.body:getPosition()
+    local px, py = self.plane.body:getWorldCenter()
     self.camera:follow({ x = px, y = py }, 0.85)
 end
 

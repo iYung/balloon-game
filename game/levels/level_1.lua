@@ -14,11 +14,19 @@
 -- shallow radius reads as a rounded bowl with plenty of segments to hide
 -- the facets; the egg starts at the bottom-center, where a ball naturally
 -- settles in a concave-up shape.
+--
+-- egg.y was originally 280 -- ~280 units above the bowl's actual surface
+-- (the bottom-center surface point is at world y = plane.y + radius = 600,
+-- so resting requires egg center at 600 - egg.radius). The level still
+-- "worked" because both start in free-fall under gravity and the lifted
+-- plane rose up fast enough to meet the still-falling egg mid-air, but the
+-- egg visibly floated apart from the bowl for the whole paused setup view.
+-- Fixed to actually rest on the surface from the start.
 return {
     name = "Level 1",
     gravity = 900,
     plane = { shape = "arc", radius = 300, span = 1.05, segments = 10, x = 0, y = 300, angle = 0 },
-    egg = { x = 0, y = 280, radius = 14 },
+    egg = { x = 0, y = 586, radius = 14 },
     balloon_count = 5,
     shelf = { x = -500, y = 400 },
     pump = { x = -400, y = 450, w = 80, h = 80 },

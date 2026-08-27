@@ -46,13 +46,14 @@ Balloon.LIFT_PER_RADIUS = LIFT_PER_RADIUS
 Balloon.CATEGORY       = CATEGORY
 
 function Balloon.new(world, x, y)
-    local self   = setmetatable({}, Balloon)
-    self.world   = world
-    self.radius  = MIN_RADIUS
-    self.state   = "loose"
-    self.joint   = nil
-    self.plane   = nil
-    self.visible = true
+    local self     = setmetatable({}, Balloon)
+    self.world     = world
+    self.radius    = MIN_RADIUS
+    self.state     = "loose"
+    self.joint     = nil
+    self.plane     = nil
+    self.visible   = true
+    self.inflating = false -- set by the owning scene while held over the pump
 
     self.body    = love.physics.newBody(world, x, y, "dynamic")
     self.shape   = love.physics.newCircleShape(self.radius)
@@ -134,6 +135,16 @@ function Balloon:draw()
     end
 
     local x, y = self.body:getPosition()
+
+    -- Faint ghost of the fully-inflated size while actively pumping, so
+    -- there's a clear visual target for "how much bigger can this get" --
+    -- drawn first (behind) so the actual filled balloon sits on top of it,
+    -- reading as a solid circle with a translucent ring around its edge.
+    if self.inflating and self.radius < MAX_RADIUS then
+        love.graphics.setColor(1, 1, 1, 0.25)
+        love.graphics.circle("fill", x, y, MAX_RADIUS)
+        love.graphics.setColor(1, 1, 1, 1)
+    end
 
     love.graphics.circle("fill", x, y, self.radius)
 end

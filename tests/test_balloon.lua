@@ -112,4 +112,25 @@ do
     print("PASS: balloon: attached balloon rises under apply_lift over several steps")
 end
 
+-- Test 4: the "inflating" ghost-preview flag defaults to false, doesn't
+-- error when drawn in either state, and draw() still works once maxed out
+-- (no ghost should render past MAX_RADIUS, but nothing should error either).
+do
+    local world   = love.physics.newWorld(0, 0, true)
+    local balloon = Balloon.new(world, 0, 0)
+
+    assert(balloon.inflating == false, "balloon should not start inflating")
+    balloon:draw() -- not inflating: just the solid circle
+
+    balloon.inflating = true
+    balloon:draw() -- inflating, below MAX_RADIUS: solid circle + ghost ring
+
+    while balloon.radius < Balloon.MAX_RADIUS do
+        balloon:inflate(1 / 60)
+    end
+    balloon:draw() -- inflating, at MAX_RADIUS: no ghost to draw, must not error
+
+    print("PASS: balloon: inflating ghost preview draws without error in all states")
+end
+
 print("ALL TESTS PASSED")
