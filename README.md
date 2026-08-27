@@ -1,13 +1,41 @@
-# love-exemplar
+# Balloon Lift
 
-A minimal Love2D project demonstrating clean architecture patterns. Intended as a reference, not a game.
+A small physics puzzle game built with LÖVE 11.5. Each level is an egg
+resting on a plane (a rigid platform — a flat plank, a tilted plank, or a
+curved bowl). Attach balloons to the plane to lift it off the ground without
+spilling the egg.
+
+## How to play
+
+Each level starts **paused** so you can set up before the physics runs:
+
+- **Drag a balloon** — click and hold a loose balloon (parked on the shelf)
+  and drag it with the mouse.
+- **Inflate** — while dragging, hold the balloon over the pump; it grows
+  continuously up to a maximum size while it stays there.
+- **Attach** — drop a balloon near the plane's surface to attach it there
+  with a rope joint; bigger balloons pull harder, and where you attach them
+  affects how the plane balances as it rises. Dropped elsewhere, it just
+  stays loose where you left it.
+- **Detach** — click and drag an already-attached balloon to pull it back
+  off the plane and reposition it.
+- **Play / Pause** — click the button in the top-right corner to start the
+  simulation. Attached balloons apply lift, the plane rises, and the egg
+  rolls with it. Pause again to freeze and inspect (setup is only editable
+  before the first Play).
+
+The level **fails** (and resets to its starting setup) if the egg falls off
+the plane or out of the level. It's **won** when the plane rises above the
+win line, at which point a "Next Level" button appears.
+
+Press `Escape` to quit.
 
 ## Structure
 
 ```
-core/lua/       Engine classes — no game knowledge (Camera, Drawer, Input, Scene,
+lua/core/       Engine classes — no game knowledge (Camera, Drawer, Input, Scene,
                 SceneManager, Sprite, SpriteSet, Timer, Fonts)
-game/           Game-specific code (Player, GameScene)
+game/           Game code: Plane, Egg, Balloon, Pump, level data, LevelScene
 lua/headless/   Headless test infrastructure (stubs, HeadlessInput, runner)
 tests/          Test files — run with: love . --headless
 assets/         Images and other assets
@@ -15,12 +43,10 @@ conf.lua        Window config; suppresses graphics/audio modules under --headles
 main.lua        Entry point — canvas rendering with letterboxing, pixel-art filter
 ```
 
-See [`core/lua/README.md`](core/lua/README.md) for API docs on each engine class.
-
 ## Running
 
 ```bash
-love .                  # normal window
+love .                  # play the game
 love . --headless       # run tests and exit
 ```
 
@@ -55,4 +81,5 @@ PR previews are deployed automatically and linked in a PR comment. Production de
 
 - **Fixed logical resolution** — game renders to a `1280×720` canvas; `main.lua` scales it to the window with letterboxing. Works with any window size.
 - **Scene transitions** — `SceneManager` fades through black (0.3 s) between scene switches.
-- **Headless tests** — `lua/headless/stubs.lua` installs no-op love API replacements so test files run without a window. `HeadlessInput` lets tests script action presses frame-by-frame. See `tests/test_basics.lua` for a minimal example.
+- **Physics** — one `love.physics` world per level (`game/scenes/level_scene.lua`); pause/run is just whether the world steps, not a body-type change.
+- **Headless tests** — `lua/headless/stubs.lua` installs no-op love API replacements so test files run without a window. `HeadlessInput` lets tests script action presses frame-by-frame; mouse-driven tests (e.g. `tests/test_level_scene.lua`) instead call `mousepressed`/`mousemoved`/`mousereleased` directly with world coordinates. See `tests/test_basics.lua` for a minimal example.
