@@ -6,17 +6,7 @@
 local MIN_RADIUS      = 10
 local MAX_RADIUS       = 40
 local INFLATE_RATE     = 20   -- radius units per second
--- Rope joint max length. Kept comfortably larger than MAX_RADIUS (40) on
--- purpose: the connecting line drawn in Balloon:draw() runs from the
--- balloon's center to this anchor, and once the rope goes taut the
--- steady-state distance sits at ~LEASH_LENGTH -- if that were smaller than
--- MAX_RADIUS (it originally was, at 30), the anchor point would sit
--- entirely inside a well-inflated balloon's own filled circle and the line
--- would be completely hidden. Re-verified this doesn't reintroduce the
--- rotation instability a shorter leash helped avoid (see plane.lua's
--- angular damping) -- level_3 still wins with the same 7 of 8 tried
--- balloon-cluster placements at this length.
-local LEASH_LENGTH     = 60
+local LEASH_LENGTH     = 30   -- rope joint max length
 -- love.physics runs Box2D at its default scale of 30 pixels/meter, so a
 -- fixture's mass is computed from its area IN METERS, not pixels -- a
 -- radius-40 circle is really a ~1.33m-radius circle. At the ordinary
@@ -146,18 +136,6 @@ function Balloon:draw()
     local x, y = self.body:getPosition()
 
     love.graphics.circle("fill", x, y, self.radius)
-
-    if self.state == "attached" and self.plane then
-        -- Line to the anchor point on the plane side of the joint
-        -- (getAnchors returns x1,y1 on the balloon body, x2,y2 on the plane).
-        -- Drawn a bit thicker than the 1px default so it reads clearly
-        -- against the plane/egg -- reset afterward so it doesn't bleed
-        -- into unrelated draws later in the frame (e.g. the pump's outline).
-        local _, _, ax, ay = self.joint:getAnchors()
-        love.graphics.setLineWidth(2)
-        love.graphics.line(x, y, ax, ay)
-        love.graphics.setLineWidth(1)
-    end
 end
 
 return Balloon
