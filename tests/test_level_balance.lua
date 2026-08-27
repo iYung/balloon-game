@@ -130,8 +130,51 @@ for _, level in ipairs(Levels.list) do
             assert(in_view(bx, by), level.name .. ": shelf balloon " .. i .. " should be in view on setup")
         end
 
+        -- Reported bug: level_1's win/fail lines were visible in the paused
+        -- view while every other level's weren't, because its centroid sat
+        -- far from the shared ~300 convention every other level's plane.y
+        -- was chosen to land near (see level_1.lua's comment). Both lines
+        -- should stay off-screen while paused on every level, consistently.
+        assert(not in_view(0, level.win_line_y), level.name .. ": win line should not be visible on setup")
+        assert(not in_view(0, level.fail_line_y), level.name .. ": fail line should not be visible on setup")
+
         print(("PASS: level_balance: %s paused setup view frames plane, egg, pump, and shelf balloons"):format(level.name))
     end
+end
+
+-- Deeper version of the same bug: every level's paused camera.y should be
+-- close to every other level's, not just each individually escape showing
+-- its own win/fail lines. camera.y is derived from each plane's true
+-- centroid (Plane:centroid_y()'s getWorldCenter -- see LevelScene:_build),
+-- so this only holds if every level's plane.y (and, for an "arc" plane,
+-- its shape) was actually chosen to land its centroid near the same ~300
+-- convention. A future level that skips that step could still pass the
+-- per-level "nothing important is visible" checks above by coincidence
+-- while still framing noticeably differently from the rest -- this catches
+-- that at the source instead.
+do
+    local CAMERA_Y_TOLERANCE = 60 -- world units; generous but well under
+                                   -- the ~296 discrepancy the reported bug had
+    local ys = {}
+    for _, level in ipairs(Levels.list) do
+        local scene = LevelScene.new(level)
+        ys[#ys + 1] = { name = level.name, y = scene.camera.y }
+    end
+    local min_y, max_y = math.huge, -math.huge
+    for _, entry in ipairs(ys) do
+        min_y = math.min(min_y, entry.y)
+        max_y = math.max(max_y, entry.y)
+    end
+    assert(max_y - min_y <= CAMERA_Y_TOLERANCE,
+        ("levels' paused camera.y values should be close to each other (spread=%.1f > tolerance=%d): %s")
+            :format(max_y - min_y, CAMERA_Y_TOLERANCE, table.concat((function()
+                local parts = {}
+                for _, entry in ipairs(ys) do
+                    parts[#parts + 1] = entry.name .. "=" .. string.format("%.1f", entry.y)
+                end
+                return parts
+            end)(), ", ")))
+    print(("PASS: level_balance: all levels' paused camera.y values are consistent (spread=%.1f)"):format(max_y - min_y))
 end
 
 print("ALL TESTS PASSED")
