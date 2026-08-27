@@ -264,4 +264,46 @@ do
     print("PASS: level_scene: advancing past the last level reaches the finished end state")
 end
 
+-- Test 7: a fail-reset restores the camera to its default framing (0, 0),
+-- not wherever it drifted to while following the falling plane during the
+-- run -- otherwise the freshly-rebuilt plane/egg end up off-screen after a
+-- failed attempt even though they're back at their normal starting size.
+do
+    local level = {
+        name = "Test Level 7",
+        gravity = 400,
+        plane = { shape = "rectangle", width = 60, height = 10, x = 0, y = 0, angle = 0 },
+        egg = { x = 0, y = 0, radius = 14 },
+        balloon_count = 0,
+        shelf = { x = -500, y = -500 },
+        pump = { x = -600, y = -600, w = 60, h = 60 },
+        win_line_y = -100000,
+        fail_line_y = 150,
+    }
+
+    local scene = LevelScene.new(level)
+    assert(scene.camera.x == 0 and scene.camera.y == 0, "camera should start at (0, 0)")
+
+    scene:mousepressed(PLAY_X, PLAY_Y, 1)
+
+    local drifted = false
+    local reset_happened = false
+    for _ = 1, 200 do
+        scene:update(1 / 60)
+        if scene.camera.y ~= 0 then drifted = true end
+        if scene.running == false then
+            reset_happened = true
+            break
+        end
+    end
+
+    assert(drifted, "camera should have followed the falling plane away from (0, 0) before the fail-reset")
+    assert(reset_happened, "egg falling past fail_line_y should trigger a reset within a bounded number of ticks")
+    assert(scene.camera.x == 0 and scene.camera.y == 0,
+        "fail-reset should restore the camera to (0, 0), got (" ..
+        tostring(scene.camera.x) .. ", " .. tostring(scene.camera.y) .. ")")
+
+    print("PASS: level_scene: fail-reset restores the camera to its default framing")
+end
+
 print("ALL TESTS PASSED")

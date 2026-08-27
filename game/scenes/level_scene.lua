@@ -107,6 +107,14 @@ function LevelScene:_build()
     self.fail_bar.color = { 0.9, 0.2, 0.2, 1 }
     self.drawer:add(self.fail_bar, 2)
 
+    -- Reset the camera to the scene's default framing (matches Scene.new's
+    -- initial Camera.new(0, 0, ...)). Without this, a fail-reset mid-run
+    -- leaves the camera wherever it drifted to while following the falling
+    -- plane, so the freshly-rebuilt plane/egg (back at their small starting
+    -- y) end up off-screen even though the shelf/pump nearby still show.
+    self.camera.x = 0
+    self.camera.y = 0
+
     self.running  = false
     self.won      = false
     self.finished = false
