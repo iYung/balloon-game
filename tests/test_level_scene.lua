@@ -10,13 +10,18 @@ local LevelScene = require("game/scenes/level_scene")
 local Balloon    = require("game/balloon")
 
 -- LevelScene's camera has a fixed 1280x720 viewport and zoom 1
--- (Scene.new(1280, 720)); while paused it sits dead-center on the level's
--- plane (see LevelScene:_build), not always (0, 0). Takes the scene so it
--- reflects that level's actual camera position rather than assuming a
--- fixed origin. Mirrors level_scene.lua's own screen_to_world math, inverted.
+-- (Scene.new(1280, 720)); while paused it sits horizontally centered on the
+-- level's plane and vertically offset so the plane renders in the bottom
+-- third of the screen (see LevelScene:_build), not always (0, 0). Takes the
+-- scene so it reflects that level's actual camera position rather than
+-- assuming a fixed origin. Mirrors level_scene.lua's own screen_to_world
+-- math, inverted.
 local function to_screen(scene, wx, wy)
     return wx - scene.camera.x + 640, wy - scene.camera.y + 360
 end
+
+-- Mirrors level_scene.lua's own VERTICAL_FRAMING_OFFSET.
+local VERTICAL_FRAMING_OFFSET = 120
 
 -- The Play/Pause button's screen rect in level_scene.lua is
 -- { x = 1100, y = 16, w = 160, h = 40 }; click comfortably inside it.
@@ -293,7 +298,8 @@ do
     local scene = LevelScene.new(level)
     local start_camera_x, start_camera_y = scene.camera.x, scene.camera.y
     assert(start_camera_x == level.plane.x, "camera should start centered on the plane's x")
-    assert(start_camera_y == level.plane.y, "camera should start centered on the plane's y")
+    assert(start_camera_y == level.plane.y - VERTICAL_FRAMING_OFFSET,
+        "camera should start offset above the plane's y (so the plane renders in the bottom third, not dead-center)")
 
     scene:mousepressed(PLAY_X, PLAY_Y, 1)
 

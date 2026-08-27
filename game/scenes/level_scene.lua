@@ -33,6 +33,21 @@ local LINE_BAR_WIDTH = 4000
 local PLAY_BUTTON = { x = 1100, y = 16, w = 160, h = 40 }
 local NEXT_BUTTON = { x = 1100, y = 70, w = 160, h = 40 }
 
+-- Shifts the camera's tracked point up by this many world units from
+-- screen-center (360, half the 720-tall viewport) so the plane/egg render
+-- lower on screen (toward the bottom third, y=480+) instead of dead-center
+-- -- leaves more headroom above to see the win line/climb coming, while
+-- staying horizontally centered (no x offset). Capped at 120 (screen
+-- y=480, the middle/bottom-third boundary) rather than pushed to the
+-- bottom third's vertical center (which would need offset=240): every
+-- shipped level's pump sits far enough below the plane that a deeper
+-- offset starts clipping it out of the paused setup view (verified
+-- against all 4 real levels -- 120 leaves every one comfortably in frame,
+-- 130 already puts level_2/3's pump exactly on the bottom edge with zero
+-- margin, 140+ clips it). Revisit if a level's pump/shelf ever move
+-- closer to its plane, since that's what actually gates this value.
+local VERTICAL_FRAMING_OFFSET = 120
+
 local function screen_to_world(camera, sx, sy)
     local wx = (sx - camera._w / 2) / camera.zoom + camera.x
     local wy = (sy - camera._h / 2) / camera.zoom + camera.y
@@ -107,21 +122,24 @@ function LevelScene:_build()
     self.fail_bar.color = { 0.9, 0.2, 0.2, 1 }
     self.drawer:add(self.fail_bar, 2)
 
-    -- Reset the camera to dead-center on the plane's true centroid (Box2D's
-    -- fixture-weighted center of mass -- see Plane:centroid_y()), not its
-    -- raw body origin. Those coincide for a "rectangle" plane, but an "arc"
-    -- plane's origin can sit far from the visible material (e.g. a "dome"
-    -- level built by flipping a bowl 180 deg deliberately keeps its origin
+    -- Reset the camera to the plane's true centroid (Box2D's fixture-
+    -- weighted center of mass -- see Plane:centroid_y()), not its raw body
+    -- origin. Those coincide for a "rectangle" plane, but an "arc" plane's
+    -- origin can sit far from the visible material (e.g. a "dome" level
+    -- built by flipping a bowl 180 deg deliberately keeps its origin
     -- radius+thickness away from the surface the egg actually rests on) --
     -- centering on the origin in that case would frame empty space instead
-    -- of the plane/egg/shelf/pump. This is the same point update()'s
-    -- camera:follow() tracks once running, so there's no visual snap when
-    -- Play is pressed, and it also fixes a fail-reset leaving the camera
-    -- wherever it drifted to while following the falling plane mid-run.
+    -- of the plane/egg/shelf/pump. Horizontally dead-center; vertically
+    -- offset so the plane/egg sit in the bottom third of the screen rather
+    -- than dead-center (see VERTICAL_FRAMING_OFFSET). This is the same
+    -- point update()'s camera:follow() tracks once running, so there's no
+    -- visual snap when Play is pressed, and it also fixes a fail-reset
+    -- leaving the camera wherever it drifted to while following the
+    -- falling plane mid-run.
     do
         local cx, cy = self.plane.body:getWorldCenter()
         self.camera.x = cx
-        self.camera.y = cy
+        self.camera.y = cy - VERTICAL_FRAMING_OFFSET
     end
 
     self.running  = false
@@ -291,7 +309,7 @@ function LevelScene:update(dt)
     end
 
     local px, py = self.plane.body:getWorldCenter()
-    self.camera:follow({ x = px, y = py }, 0.85)
+    self.camera:follow({ x = px, y = py - VERTICAL_FRAMING_OFFSET }, 0.85)
 end
 
 function LevelScene:draw()

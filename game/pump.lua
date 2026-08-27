@@ -27,36 +27,20 @@ function Pump:overlaps(x, y)
        and y >= self.y and y <= self.y + self.h
 end
 
--- Simple line-art hand pump, drawn within the zone's bounding box: a T
--- handle up top (with end-cap ticks so it reads as a grip, not just a
--- line), a plunger rod down into a barrel, and a base with a short nozzle
--- stub -- recognizable as "a pump" while staying in the same white-line
--- silhouette style as the rest of the game (no filled shapes but the
--- balloons/HUD, no images).
 function Pump:draw()
     if not self.visible then
         return
     end
 
-    local x, y, w, h = self.x, self.y, self.w, self.h
+    love.graphics.rectangle("line", self.x, self.y, self.w, self.h)
 
-    local barrel_x, barrel_y = x + w * 0.3, y + h * 0.35
-    local barrel_w, barrel_h = w * 0.4, h * 0.5
-    love.graphics.rectangle("line", barrel_x, barrel_y, barrel_w, barrel_h)
-
-    -- Plunger rod connecting the handle down into the barrel.
-    love.graphics.line(x + w * 0.5, y + h * 0.12, x + w * 0.5, barrel_y)
-
-    -- T-handle, with short end-cap ticks so it reads as a grip.
-    love.graphics.line(x + w * 0.2, y + h * 0.12, x + w * 0.8, y + h * 0.12)
-    love.graphics.line(x + w * 0.2, y + h * 0.12, x + w * 0.2, y + h * 0.2)
-    love.graphics.line(x + w * 0.8, y + h * 0.12, x + w * 0.8, y + h * 0.2)
-
-    -- Base plate.
-    love.graphics.line(x + w * 0.15, y + h * 0.95, x + w * 0.85, y + h * 0.95)
-
-    -- Nozzle stub from the barrel down to the base.
-    love.graphics.line(x + w * 0.5, barrel_y + barrel_h, x + w * 0.5, y + h * 0.95)
+    -- A simple T-handle above the pump body -- a rod up from the top edge
+    -- ending in a short crossbar -- just enough to read as "a pump" without
+    -- changing the original box silhouette.
+    local handle_x = self.x + self.w * 0.5
+    local handle_y = self.y - self.h * 0.15
+    love.graphics.line(handle_x, self.y, handle_x, handle_y)
+    love.graphics.line(handle_x - self.w * 0.15, handle_y, handle_x + self.w * 0.15, handle_y)
 end
 
 return Pump

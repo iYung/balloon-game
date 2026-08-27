@@ -104,6 +104,34 @@ for _, level in ipairs(Levels.list) do
             ": a single balloon should not be enough to win -- balance may have drifted back to trivially easy")
         print(("PASS: level_balance: %s does not win with only 1 balloon"):format(level.name))
     end
+
+    -- The paused setup view (camera centered horizontally, offset toward
+    -- the bottom third vertically -- see level_scene.lua's
+    -- VERTICAL_FRAMING_OFFSET) must still show the plane, egg, pump, and
+    -- every shelf balloon. The offset is deliberately capped at exactly the
+    -- value that keeps every shipped level's pump in frame; if a level's
+    -- pump/shelf distance from its plane ever changes, this is what would
+    -- catch the regression instead of it only surfacing in a screenshot.
+    do
+        local scene = LevelScene.new(level)
+
+        local function in_view(wx, wy)
+            local sx = wx - scene.camera.x + 640
+            local sy = wy - scene.camera.y + 360
+            return sx >= 0 and sx <= 1280 and sy >= 0 and sy <= 720
+        end
+
+        assert(in_view(level.egg.x, level.egg.y), level.name .. ": egg should be in view on setup")
+        assert(in_view(level.pump.x, level.pump.y), level.name .. ": pump top-left should be in view on setup")
+        assert(in_view(level.pump.x + level.pump.w, level.pump.y + level.pump.h),
+            level.name .. ": pump bottom-right should be in view on setup")
+        for i, balloon in ipairs(scene.balloons) do
+            local bx, by = balloon.body:getPosition()
+            assert(in_view(bx, by), level.name .. ": shelf balloon " .. i .. " should be in view on setup")
+        end
+
+        print(("PASS: level_balance: %s paused setup view frames plane, egg, pump, and shelf balloons"):format(level.name))
+    end
 end
 
 print("ALL TESTS PASSED")
