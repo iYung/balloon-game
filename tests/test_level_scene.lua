@@ -268,7 +268,7 @@ do
 end
 
 -- Test 7: a fail-reset restores the camera to its default setup framing
--- (the plane/shelf midpoint -- see LevelScene:_build), not wherever it
+-- (dead-center on the plane -- see LevelScene:_build), not wherever it
 -- drifted to while following the falling plane during the run -- otherwise
 -- the freshly-rebuilt plane/egg end up off-screen after a failed attempt
 -- even though they're back at their normal starting size.
@@ -287,8 +287,8 @@ do
 
     local scene = LevelScene.new(level)
     local start_camera_x, start_camera_y = scene.camera.x, scene.camera.y
-    assert(start_camera_x == (level.plane.x + level.shelf.x) / 2, "camera should start at the plane/shelf x midpoint")
-    assert(start_camera_y == (level.plane.y + level.shelf.y) / 2, "camera should start at the plane/shelf y midpoint")
+    assert(start_camera_x == level.plane.x, "camera should start centered on the plane's x")
+    assert(start_camera_y == level.plane.y, "camera should start centered on the plane's y")
 
     scene:mousepressed(PLAY_X, PLAY_Y, 1)
 
