@@ -8,6 +8,6 @@ return {
     balloon_count = 4,
     shelf = { x = -500, y = 400 },
     pump = { x = -400, y = 450, w = 80, h = 80 },
-    win_line_y = -300,
+    win_line_y = -600,
     fail_line_y = 700,
 }

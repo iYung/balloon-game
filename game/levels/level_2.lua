@@ -1,17 +1,25 @@
 -- Level 2: the same rectangular plank as Level 1, but it starts pre-tilted
--- (angle = 0.3 rad ≈ 17°). A positive angle rotates the plank so its
+-- (angle = 0.1 rad ≈ 5.7°). A positive angle rotates the plank so its
 -- positive-local-x end swings toward larger world y (lower on screen,
 -- since Love2D's y axis grows downward) — that's the "low end". The egg
 -- starts resting near that low end rather than dead center, matching where
 -- it would naturally roll to.
+--
+-- angle was originally 0.3 rad (~17deg), which turned out to be unwinnable:
+-- balloon-induced rotation compounds the initial tilt fast enough that the
+-- egg rolls off before the plane can rise, regardless of attach strategy
+-- (verified: multiple placements, all failed). At 0.1 rad, a sensible
+-- 4-balloon spread wins in ~2.3s while 3 balloons or a lopsided placement
+-- (all on one end) still fails -- placement and balloon count both matter,
+-- same as the design intends, without being unwinnable outright.
 return {
     name = "Level 2",
     gravity = 900,
-    plane = { shape = "rectangle", width = 300, height = 20, x = 0, y = 300, angle = 0.3 },
-    egg = { x = 90, y = 304, radius = 14 },
+    plane = { shape = "rectangle", width = 300, height = 20, x = 0, y = 300, angle = 0.1 },
+    egg = { x = 91.9, y = 285.1, radius = 14 },
     balloon_count = 4,
     shelf = { x = -500, y = 400 },
     pump = { x = -400, y = 450, w = 80, h = 80 },
-    win_line_y = -300,
+    win_line_y = -600,
     fail_line_y = 700,
 }

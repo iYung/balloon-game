@@ -7,7 +7,25 @@ local MIN_RADIUS      = 10
 local MAX_RADIUS       = 40
 local INFLATE_RATE     = 20   -- radius units per second
 local LEASH_LENGTH     = 30   -- rope joint max length
-local LIFT_PER_RADIUS  = 400  -- upward force per unit of radius
+-- love.physics runs Box2D at its default scale of 30 pixels/meter, so a
+-- fixture's mass is computed from its area IN METERS, not pixels -- a
+-- radius-40 circle is really a ~1.33m-radius circle. At the ordinary
+-- density of 1 that gives it a mass of ~5.6 and a weight (mass * gravity)
+-- of several thousand: far more than any reasonable lift force, so every
+-- balloon would be a net anchor instead of a lifter regardless of count.
+-- A real balloon's shell+gas weighs a small fraction of what it can lift,
+-- so it needs a much lower density than the plane/egg it's trying to move.
+local DENSITY          = 0.01
+-- Upward force per unit of radius. Tuned against level_1's plane (mass
+-- ~6.7, gravity 900 -> weight ~6030): one or two maxed balloons (40 * 60 =
+-- 2400, 4800) can't lift it alone, three clears it with a thin margin
+-- (7200), and all four gives a real but not instant climb (9600, ~1.6x
+-- weight) -- so winning takes most/all balloons well-inflated rather than
+-- one balloon trivially overpowering the level. This math only holds
+-- because DENSITY above keeps each balloon's own weight negligible next to
+-- its lift (e.g. ~50 out of 2400 at max radius) -- otherwise the balloons'
+-- own weight would swamp the lift entirely.
+local LIFT_PER_RADIUS  = 60
 
 local Balloon = {}
 Balloon.__index = Balloon
@@ -28,7 +46,7 @@ function Balloon.new(world, x, y)
 
     self.body    = love.physics.newBody(world, x, y, "dynamic")
     self.shape   = love.physics.newCircleShape(self.radius)
-    self.fixture = love.physics.newFixture(self.body, self.shape, 1)
+    self.fixture = love.physics.newFixture(self.body, self.shape, DENSITY)
 
     return self
 end
@@ -57,7 +75,7 @@ function Balloon:inflate(dt)
 
     self.fixture:destroy()
     self.shape   = love.physics.newCircleShape(self.radius)
-    self.fixture = love.physics.newFixture(self.body, self.shape, 1)
+    self.fixture = love.physics.newFixture(self.body, self.shape, DENSITY)
 end
 
 -- Attaches this balloon to a plane at plane-local coordinates (local_x,
