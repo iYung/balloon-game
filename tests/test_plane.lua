@@ -48,9 +48,17 @@ do
     for _, fixture in ipairs(plane.fixtures) do
         assert(fixture:getBody() == plane.body, "every arc fixture should be attached to the plane's body")
     end
-    assert(plane:centroid_y() == 200, "centroid_y() should reflect spec.y (200), got " .. tostring(plane:centroid_y()))
+    -- centroid_y() is Box2D's fixture-weighted center of mass, not the raw
+    -- body origin -- for an arc plane the visible material sits below the
+    -- origin (by up to radius+thickness, less for a wide span since the
+    -- arc's outer edges curve back up toward the origin's height), so it
+    -- should land strictly between the origin and the material's outer edge.
+    local cy = plane:centroid_y()
+    assert(cy > spec.y, "arc centroid_y() should be below the body origin (material hangs below it), got " .. tostring(cy))
+    assert(cy < spec.y + spec.radius + spec.thickness,
+        "arc centroid_y() should not exceed the outer edge, got " .. tostring(cy))
 
-    print("PASS: plane: arc builds N convex segment fixtures on one body, centroid_y reflects spec.y")
+    print("PASS: plane: arc builds N convex segment fixtures on one body, centroid_y is the true center of mass")
 end
 
 -- Test 4: arc plane defaults (no explicit thickness/segments) still work.

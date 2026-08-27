@@ -26,6 +26,10 @@ local DENSITY          = 0.01
 -- its lift (e.g. ~50 out of 2400 at max radius) -- otherwise the balloons'
 -- own weight would swamp the lift entirely.
 local LIFT_PER_RADIUS  = 60
+-- Collision category balloons register their fixtures under, so the egg
+-- can exclude them (see game/egg.lua) -- the egg should rest on the plane,
+-- not bump into balloons floating around/above it.
+local CATEGORY         = 2
 
 local Balloon = {}
 Balloon.__index = Balloon
@@ -35,6 +39,7 @@ Balloon.MAX_RADIUS     = MAX_RADIUS
 Balloon.INFLATE_RATE   = INFLATE_RATE
 Balloon.LEASH_LENGTH   = LEASH_LENGTH
 Balloon.LIFT_PER_RADIUS = LIFT_PER_RADIUS
+Balloon.CATEGORY       = CATEGORY
 
 function Balloon.new(world, x, y)
     local self   = setmetatable({}, Balloon)
@@ -43,10 +48,12 @@ function Balloon.new(world, x, y)
     self.state   = "loose"
     self.joint   = nil
     self.plane   = nil
+    self.visible = true
 
     self.body    = love.physics.newBody(world, x, y, "dynamic")
     self.shape   = love.physics.newCircleShape(self.radius)
     self.fixture = love.physics.newFixture(self.body, self.shape, DENSITY)
+    self.fixture:setCategory(CATEGORY)
 
     return self
 end
@@ -76,6 +83,7 @@ function Balloon:inflate(dt)
     self.fixture:destroy()
     self.shape   = love.physics.newCircleShape(self.radius)
     self.fixture = love.physics.newFixture(self.body, self.shape, DENSITY)
+    self.fixture:setCategory(CATEGORY)
 end
 
 -- Attaches this balloon to a plane at plane-local coordinates (local_x,
@@ -117,6 +125,10 @@ function Balloon:apply_lift()
 end
 
 function Balloon:draw()
+    if not self.visible then
+        return
+    end
+
     local x, y = self.body:getPosition()
 
     love.graphics.circle("fill", x, y, self.radius)

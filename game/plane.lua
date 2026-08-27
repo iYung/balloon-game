@@ -93,10 +93,15 @@ function Plane:world_anchor(local_x, local_y)
 end
 
 -- Vertical position used for the win check ("has the plane risen above the
--- win line"). The body origin is placed at spec.y for every shape, so this
--- doubles as a simple, cheap stand-in for the plane's centroid.
+-- win line"). Uses the body's actual world-space center of mass, not the
+-- body origin -- for a centered "rectangle" plane those coincide, but for
+-- an "arc" plane the origin sits `radius` units *above* the visible bowl
+-- material (see _build_arc), so using getY() there made the win line
+-- trigger long before the visible bowl actually reached it. getWorldCenter
+-- is Box2D's own fixture-weighted center of mass, correct for any shape.
 function Plane:centroid_y()
-    return self.body:getY()
+    local _, wy = self.body:getWorldCenter()
+    return wy
 end
 
 function Plane:draw()

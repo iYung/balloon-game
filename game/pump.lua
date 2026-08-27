@@ -11,11 +11,12 @@ Pump.__index = Pump
 -- spec: { x, y, w, h } -- (x, y) is the top-left corner of the zone in
 -- world coordinates, (w, h) its width/height.
 function Pump.new(spec)
-    local self = setmetatable({}, Pump)
-    self.x     = spec.x
-    self.y     = spec.y
-    self.w     = spec.w
-    self.h     = spec.h
+    local self   = setmetatable({}, Pump)
+    self.x       = spec.x
+    self.y       = spec.y
+    self.w       = spec.w
+    self.h       = spec.h
+    self.visible = true
     return self
 end
 
@@ -27,6 +28,9 @@ function Pump:overlaps(x, y)
 end
 
 function Pump:draw()
+    if not self.visible then
+        return
+    end
     love.graphics.rectangle("line", self.x, self.y, self.w, self.h)
 end
 

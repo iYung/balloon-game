@@ -10,11 +10,10 @@ local LevelScene = require("game/scenes/level_scene")
 local Balloon    = require("game/balloon")
 
 -- LevelScene's camera has a fixed 1280x720 viewport and zoom 1
--- (Scene.new(1280, 720)); while paused it sits at the midpoint between the
--- level's plane and shelf (see LevelScene:_build), not always (0, 0). Takes
--- the scene so it reflects that level's actual camera position rather than
--- assuming a fixed origin. Mirrors level_scene.lua's own screen_to_world
--- math, inverted.
+-- (Scene.new(1280, 720)); while paused it sits dead-center on the level's
+-- plane (see LevelScene:_build), not always (0, 0). Takes the scene so it
+-- reflects that level's actual camera position rather than assuming a
+-- fixed origin. Mirrors level_scene.lua's own screen_to_world math, inverted.
 local function to_screen(scene, wx, wy)
     return wx - scene.camera.x + 640, wy - scene.camera.y + 360
 end
@@ -348,6 +347,70 @@ do
     end
 
     print("PASS: level_scene: paused setup view frames plane, egg, pump, and shelf balloons")
+end
+
+-- Test 9: pressing Play hides the pump and every still-loose balloon (the
+-- setup phase is over, nothing left to do with them), but an already-
+-- attached balloon stays visible since it's actively part of the mechanism.
+do
+    local level = {
+        name = "Test Level 9",
+        gravity = 900,
+        plane = { shape = "rectangle", width = 60, height = 10, x = 0, y = 0, angle = 0 },
+        egg = { x = 5000, y = 5000, radius = 14 },
+        balloon_count = 2,
+        shelf = { x = 300, y = 300 },
+        pump = { x = 1000, y = 1000, w = 60, h = 60 },
+        win_line_y = -100000,
+        fail_line_y = 100000,
+    }
+
+    local scene = LevelScene.new(level)
+    assert(scene.pump.visible == true, "pump should be visible while paused")
+    assert(scene.balloons[1].visible == true, "loose balloons should be visible while paused")
+
+    -- Attach balloon 1, leave balloon 2 loose.
+    local bx, by = scene.balloons[1].body:getPosition()
+    local sx, sy = to_screen(scene, bx, by)
+    scene:mousepressed(sx, sy, 1)
+    local dx, dy = to_screen(scene, 0, -5) -- on the plane's top surface
+    scene:mousemoved(dx, dy)
+    scene:mousereleased(dx, dy, 1)
+    assert(scene.balloons[1].state == "attached", "balloon 1 should have attached")
+
+    scene:mousepressed(PLAY_X, PLAY_Y, 1)
+    assert(scene.running == true, "Play should start the run")
+
+    assert(scene.pump.visible == false, "pump should hide once running")
+    assert(scene.balloons[1].visible == true, "the attached balloon should stay visible while running")
+    assert(scene.balloons[2].visible == false, "the still-loose balloon should hide once running")
+
+    print("PASS: level_scene: pressing Play hides the pump and loose balloons, keeps attached ones visible")
+end
+
+-- Test 10: once running, clicking the Play button again does nothing --
+-- there's no pausing mid-run, only a win or a fail-reset.
+do
+    local level = {
+        name = "Test Level 10",
+        gravity = 900,
+        plane = { shape = "rectangle", width = 60, height = 10, x = 0, y = 0, angle = 0 },
+        egg = { x = 5000, y = 5000, radius = 14 },
+        balloon_count = 0,
+        shelf = { x = -500, y = -500 },
+        pump = { x = 1000, y = 1000, w = 60, h = 60 },
+        win_line_y = -100000,
+        fail_line_y = 100000,
+    }
+
+    local scene = LevelScene.new(level)
+    scene:mousepressed(PLAY_X, PLAY_Y, 1)
+    assert(scene.running == true, "Play should start the run")
+
+    scene:mousepressed(PLAY_X, PLAY_Y, 1)
+    assert(scene.running == true, "clicking Play again while running should not pause it")
+
+    print("PASS: level_scene: clicking Play again while running does not pause")
 end
 
 print("ALL TESTS PASSED")

@@ -182,6 +182,21 @@ function LevelScene:_advance_level()
     end
 end
 
+-- One-way transition out of the setup phase: once running, there's no way
+-- back to pause-and-edit -- the run plays out to a win or a fail-reset.
+-- Also hides the pump and every still-loose balloon (nothing you can still
+-- do with them once physics has taken over) -- attached balloons keep
+-- drawing since they're actively part of the mechanism.
+function LevelScene:_start_running()
+    self.running = true
+    self.pump.visible = false
+    for _, balloon in ipairs(self.balloons) do
+        if balloon.state == "loose" then
+            balloon.visible = false
+        end
+    end
+end
+
 function LevelScene:mousepressed(x, y, button)
     if button ~= 1 then return end
 
@@ -193,7 +208,9 @@ function LevelScene:mousepressed(x, y, button)
     end
 
     if point_in_rect(x, y, PLAY_BUTTON) then
-        self.running = not self.running
+        if not self.running then
+            self:_start_running()
+        end
         return
     end
 
@@ -277,8 +294,12 @@ function LevelScene:draw()
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.print(self.level.name, 16, 16)
 
-    love.graphics.rectangle("line", PLAY_BUTTON.x, PLAY_BUTTON.y, PLAY_BUTTON.w, PLAY_BUTTON.h)
-    love.graphics.print(self.running and "Pause" or "Play", PLAY_BUTTON.x + 10, PLAY_BUTTON.y + 10)
+    if self.running then
+        love.graphics.print("Running...", PLAY_BUTTON.x + 10, PLAY_BUTTON.y + 10)
+    else
+        love.graphics.rectangle("line", PLAY_BUTTON.x, PLAY_BUTTON.y, PLAY_BUTTON.w, PLAY_BUTTON.h)
+        love.graphics.print("Play", PLAY_BUTTON.x + 10, PLAY_BUTTON.y + 10)
+    end
 
     if self.won and self.finished then
         love.graphics.print("You Win! All levels complete.", 460, 300)

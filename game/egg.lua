@@ -1,3 +1,5 @@
+local Balloon = require("game/balloon")
+
 local Egg = {}
 Egg.__index = Egg
 
@@ -13,6 +15,9 @@ function Egg.new(world, spec)
     self.body    = love.physics.newBody(world, spec.x, spec.y, "dynamic")
     self.shape   = love.physics.newCircleShape(spec.radius)
     self.fixture = love.physics.newFixture(self.body, self.shape)
+    -- The egg should rest on the plane, not physically bump into balloons
+    -- floating around/above it -- exclude Balloon.CATEGORY from collision.
+    self.fixture:setMask(Balloon.CATEGORY)
     return self
 end
 
