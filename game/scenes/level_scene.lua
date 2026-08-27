@@ -107,13 +107,18 @@ function LevelScene:_build()
     self.fail_bar.color = { 0.9, 0.2, 0.2, 1 }
     self.drawer:add(self.fail_bar, 2)
 
-    -- Reset the camera to the scene's default framing (matches Scene.new's
-    -- initial Camera.new(0, 0, ...)). Without this, a fail-reset mid-run
-    -- leaves the camera wherever it drifted to while following the falling
-    -- plane, so the freshly-rebuilt plane/egg (back at their small starting
-    -- y) end up off-screen even though the shelf/pump nearby still show.
-    self.camera.x = 0
-    self.camera.y = 0
+    -- Reset the camera to the scene's default setup framing: the midpoint
+    -- between the plane and the balloon shelf. A fixed (0, 0) doesn't
+    -- reliably show "plane, egg, shelf, pump all visible" (the design's
+    -- requirement for the paused view) since a level is free to place its
+    -- shelf/pump well outside the plane's own neighborhood -- e.g. level_1
+    -- puts the shelf/pump at y=400/450 while the plane sits at y=300,
+    -- comfortably outside a 720-tall viewport centered on world (0, 0).
+    -- Centering on the plane/shelf midpoint keeps both ends in frame.
+    -- This also fixes a fail-reset leaving the camera wherever it drifted
+    -- to while following the falling plane mid-run.
+    self.camera.x = (self.level.plane.x + self.level.shelf.x) / 2
+    self.camera.y = (self.level.plane.y + self.level.shelf.y) / 2
 
     self.running  = false
     self.won      = false

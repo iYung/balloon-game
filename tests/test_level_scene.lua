@@ -9,11 +9,14 @@
 local LevelScene = require("game/scenes/level_scene")
 local Balloon    = require("game/balloon")
 
--- LevelScene's camera starts at (0, 0) with a fixed 1280x720 viewport and
--- zoom 1 (Scene.new(1280, 720), never moved while paused), so screen (640,
--- 360) is world (0, 0). Mirrors level_scene.lua's own screen_to_world math.
-local function to_screen(wx, wy)
-    return wx + 640, wy + 360
+-- LevelScene's camera has a fixed 1280x720 viewport and zoom 1
+-- (Scene.new(1280, 720)); while paused it sits at the midpoint between the
+-- level's plane and shelf (see LevelScene:_build), not always (0, 0). Takes
+-- the scene so it reflects that level's actual camera position rather than
+-- assuming a fixed origin. Mirrors level_scene.lua's own screen_to_world
+-- math, inverted.
+local function to_screen(scene, wx, wy)
+    return wx - scene.camera.x + 640, wy - scene.camera.y + 360
 end
 
 -- The Play/Pause button's screen rect in level_scene.lua is
@@ -42,11 +45,11 @@ do
     local balloon = scene.balloons[1]
     assert(balloon.radius == Balloon.MIN_RADIUS, "balloon should start at MIN_RADIUS")
 
-    local sx, sy = to_screen(0, 0)
+    local sx, sy = to_screen(scene, 0, 0)
     scene:mousepressed(sx, sy, 1)
     assert(scene.dragging == balloon, "pressing on the shelf balloon should start dragging it")
 
-    local px, py = to_screen(130, 130) -- inside the pump zone
+    local px, py = to_screen(scene, 130, 130) -- inside the pump zone
     scene:mousemoved(px, py)
 
     for _ = 1, 20 do
@@ -78,11 +81,11 @@ do
     local scene   = LevelScene.new(level)
     local balloon = scene.balloons[1]
 
-    local sx, sy = to_screen(300, 300)
+    local sx, sy = to_screen(scene, 300, 300)
     scene:mousepressed(sx, sy, 1)
     assert(scene.dragging == balloon, "pressing on the shelf balloon should start dragging it")
 
-    local dx, dy = to_screen(0, -10) -- just on the plane's top surface
+    local dx, dy = to_screen(scene, 0, -10) -- just on the plane's top surface
     scene:mousemoved(dx, dy)
     scene:mousereleased(dx, dy, 1)
 
@@ -150,11 +153,11 @@ do
     local attach_points = { -1, 1 }
     for i, balloon in ipairs(scene.balloons) do
         local bx, by = balloon.body:getPosition()
-        local sx, sy = to_screen(bx, by)
+        local sx, sy = to_screen(scene, bx, by)
         scene:mousepressed(sx, sy, 1)
         assert(scene.dragging == balloon, "should pick up balloon " .. i)
 
-        local dx, dy = to_screen(attach_points[i], -1) -- on the plane's top surface
+        local dx, dy = to_screen(scene, attach_points[i], -1) -- on the plane's top surface
         scene:mousemoved(dx, dy)
         scene:mousereleased(dx, dy, 1)
 
@@ -242,9 +245,9 @@ do
     local attach_points = { -1, 1 }
     for i, balloon in ipairs(scene.balloons) do
         local bx, by = balloon.body:getPosition()
-        local sx, sy = to_screen(bx, by)
+        local sx, sy = to_screen(scene, bx, by)
         scene:mousepressed(sx, sy, 1)
-        local dx, dy = to_screen(attach_points[i], -1)
+        local dx, dy = to_screen(scene, attach_points[i], -1)
         scene:mousemoved(dx, dy)
         scene:mousereleased(dx, dy, 1)
     end
@@ -264,10 +267,11 @@ do
     print("PASS: level_scene: advancing past the last level reaches the finished end state")
 end
 
--- Test 7: a fail-reset restores the camera to its default framing (0, 0),
--- not wherever it drifted to while following the falling plane during the
--- run -- otherwise the freshly-rebuilt plane/egg end up off-screen after a
--- failed attempt even though they're back at their normal starting size.
+-- Test 7: a fail-reset restores the camera to its default setup framing
+-- (the plane/shelf midpoint -- see LevelScene:_build), not wherever it
+-- drifted to while following the falling plane during the run -- otherwise
+-- the freshly-rebuilt plane/egg end up off-screen after a failed attempt
+-- even though they're back at their normal starting size.
 do
     local level = {
         name = "Test Level 7",
@@ -282,7 +286,9 @@ do
     }
 
     local scene = LevelScene.new(level)
-    assert(scene.camera.x == 0 and scene.camera.y == 0, "camera should start at (0, 0)")
+    local start_camera_x, start_camera_y = scene.camera.x, scene.camera.y
+    assert(start_camera_x == (level.plane.x + level.shelf.x) / 2, "camera should start at the plane/shelf x midpoint")
+    assert(start_camera_y == (level.plane.y + level.shelf.y) / 2, "camera should start at the plane/shelf y midpoint")
 
     scene:mousepressed(PLAY_X, PLAY_Y, 1)
 
@@ -290,20 +296,58 @@ do
     local reset_happened = false
     for _ = 1, 200 do
         scene:update(1 / 60)
-        if scene.camera.y ~= 0 then drifted = true end
+        if scene.camera.y ~= start_camera_y then drifted = true end
         if scene.running == false then
             reset_happened = true
             break
         end
     end
 
-    assert(drifted, "camera should have followed the falling plane away from (0, 0) before the fail-reset")
+    assert(drifted, "camera should have followed the falling plane away from its starting position before the fail-reset")
     assert(reset_happened, "egg falling past fail_line_y should trigger a reset within a bounded number of ticks")
-    assert(scene.camera.x == 0 and scene.camera.y == 0,
-        "fail-reset should restore the camera to (0, 0), got (" ..
+    assert(scene.camera.x == start_camera_x and scene.camera.y == start_camera_y,
+        "fail-reset should restore the camera to its starting position, got (" ..
         tostring(scene.camera.x) .. ", " .. tostring(scene.camera.y) .. ")")
 
     print("PASS: level_scene: fail-reset restores the camera to its default framing")
+end
+
+-- Test 8: on construction, the paused camera frames the plane, egg, pump,
+-- and every loose shelf balloon within the 1280x720 viewport -- the
+-- design's requirement for the setup screen. Uses a level shaped like the
+-- real ones (shelf/pump well below the plane) to catch the regression
+-- where a fixed (0, 0) camera left the pump/shelf off the bottom edge.
+do
+    local level = {
+        name = "Test Level 8",
+        gravity = 900,
+        plane = { shape = "rectangle", width = 300, height = 20, x = 0, y = 300, angle = 0 },
+        egg = { x = 0, y = 270, radius = 14 },
+        balloon_count = 4,
+        shelf = { x = -500, y = 400 },
+        pump = { x = -400, y = 450, w = 80, h = 80 },
+        win_line_y = -300,
+        fail_line_y = 700,
+    }
+
+    local scene = LevelScene.new(level)
+
+    local function in_view(wx, wy)
+        local sx, sy = to_screen(scene, wx, wy)
+        return sx >= 0 and sx <= 1280 and sy >= 0 and sy <= 720
+    end
+
+    assert(in_view(level.plane.x, level.plane.y), "plane should be in view on setup")
+    assert(in_view(level.egg.x, level.egg.y), "egg should be in view on setup")
+    assert(in_view(level.pump.x, level.pump.y), "pump top-left should be in view on setup")
+    assert(in_view(level.pump.x + level.pump.w, level.pump.y + level.pump.h),
+        "pump bottom-right should be in view on setup")
+    for i, balloon in ipairs(scene.balloons) do
+        local bx, by = balloon.body:getPosition()
+        assert(in_view(bx, by), "shelf balloon " .. i .. " should be in view on setup")
+    end
+
+    print("PASS: level_scene: paused setup view frames plane, egg, pump, and shelf balloons")
 end
 
 print("ALL TESTS PASSED")
