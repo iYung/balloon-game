@@ -133,13 +133,15 @@ end
 
 -- Test 4: a level rigged with enough attached-balloon lift (a tiny,
 -- near-weightless plane vs. two attached balloons) reaches win within a
--- bounded number of update ticks after pressing Play.
+-- bounded number of update ticks after pressing Play. Win is keyed off the
+-- egg's position, not the plane's, so the egg has to actually be resting
+-- on the plane (rather than parked out of the way) for this to reach win.
 do
     local level = {
         name = "Test Level 4",
         gravity = 1,
         plane = { shape = "rectangle", width = 4, height = 2, x = 0, y = 0, angle = 0 },
-        egg = { x = 5000, y = 5000, radius = 14 },
+        egg = { x = 0, y = -15, radius = 14 }, -- resting on the plane's top surface
         balloon_count = 2,
         shelf = { x = 300, y = 300 },
         pump = { x = 1000, y = 1000, w = 60, h = 60 },
@@ -225,13 +227,14 @@ end
 -- Test 6: clicking Next Level when there is no next level (Levels.next
 -- returns nil, since this synthetic level is never in the real
 -- game/levels/init.lua list) reaches a "finished" end state instead of
--- leaving the Next Level button permanently inert.
+-- leaving the Next Level button permanently inert. Win is keyed off the
+-- egg, so it needs to actually be resting on the plane to reach win.
 do
     local level = {
         name = "Test Level 6",
         gravity = 1,
         plane = { shape = "rectangle", width = 4, height = 2, x = 0, y = 0, angle = 0 },
-        egg = { x = 5000, y = 5000, radius = 14 },
+        egg = { x = 0, y = -15, radius = 14 }, -- resting on the plane's top surface
         balloon_count = 2,
         shelf = { x = 300, y = 300 },
         pump = { x = 1000, y = 1000, w = 60, h = 60 },
@@ -411,6 +414,49 @@ do
     assert(scene.running == true, "clicking Play again while running should not pause it")
 
     print("PASS: level_scene: clicking Play again while running does not pause")
+end
+
+-- Test 11: winning is keyed off the egg's position, not the plane's. Rig a
+-- level where the plane (tiny, near-massless, two maxed balloons) rockets
+-- straight past the win line almost immediately, but the egg is parked far
+-- away, untouched by any of it, and never reaches anywhere near that line.
+-- The plane alone crossing must NOT set scene.won.
+do
+    local level = {
+        name = "Test Level 11",
+        gravity = 1,
+        plane = { shape = "rectangle", width = 4, height = 2, x = 0, y = 0, angle = 0 },
+        egg = { x = 5000, y = 5000, radius = 14 }, -- far away, unrelated to the plane
+        balloon_count = 2,
+        shelf = { x = 300, y = 300 },
+        pump = { x = 1000, y = 1000, w = 60, h = 60 },
+        win_line_y = -5,
+        fail_line_y = 1000000, -- effectively unreachable, so the egg free-falling doesn't trigger a reset
+    }
+
+    local scene = LevelScene.new(level)
+    local attach_points = { -1, 1 }
+    for i, balloon in ipairs(scene.balloons) do
+        local bx, by = balloon.body:getPosition()
+        local sx, sy = to_screen(scene, bx, by)
+        scene:mousepressed(sx, sy, 1)
+        local dx, dy = to_screen(scene, attach_points[i], -1)
+        scene:mousemoved(dx, dy)
+        scene:mousereleased(dx, dy, 1)
+    end
+
+    scene:mousepressed(PLAY_X, PLAY_Y, 1)
+    for _ = 1, 300 do
+        scene:update(1 / 60)
+    end
+
+    assert(scene.plane:centroid_y() < level.win_line_y,
+        "setup check: the plane should have cleared the win line on its own, centroid_y=" ..
+        tostring(scene.plane:centroid_y()))
+    assert(scene.won == false,
+        "the plane alone crossing the win line should NOT win the level -- only the egg reaching it should")
+
+    print("PASS: level_scene: the plane crossing the win line alone does not win (egg must reach it)")
 end
 
 print("ALL TESTS PASSED")

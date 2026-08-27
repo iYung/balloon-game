@@ -19,13 +19,14 @@ Each level starts **paused** so you can set up before the physics runs:
   stays loose where you left it.
 - **Detach** — click and drag an already-attached balloon to pull it back
   off the plane and reposition it.
-- **Play / Pause** — click the button in the top-right corner to start the
+- **Play** — click the button in the top-right corner to start the
   simulation. Attached balloons apply lift, the plane rises, and the egg
-  rolls with it. Pause again to freeze and inspect (setup is only editable
-  before the first Play).
+  rolls with it. There's no pausing once you start — the pump and any
+  still-loose balloons disappear, and the run plays out to a win or a
+  fail-reset.
 
 The level **fails** (and resets to its starting setup) if the egg falls off
-the plane or out of the level. It's **won** when the plane rises above the
+the plane or out of the level. It's **won** when the *egg* rises above the
 win line, at which point a "Next Level" button appears.
 
 Press `Escape` to quit.

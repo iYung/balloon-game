@@ -33,6 +33,13 @@ function Plane.new(world, spec)
     self.spec     = spec
     self.body     = love.physics.newBody(world, spec.x, spec.y, "dynamic")
     self.body:setAngle(spec.angle or 0)
+    -- Box2D bodies have zero angular damping by default, so any torque
+    -- from off-center balloon attachments just keeps the plane spinning/
+    -- oscillating indefinitely instead of settling -- with strong lift this
+    -- turned a merely-off-center attach point into a wild, uncontrollable
+    -- swing. A real plank has air resistance and internal friction working
+    -- against that; this approximates it so rotation actually settles.
+    self.body:setAngularDamping(12)
     self.fixtures = {}
 
     if spec.shape == "rectangle" then

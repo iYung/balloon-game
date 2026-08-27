@@ -278,7 +278,7 @@ function LevelScene:update(dt)
         return
     end
 
-    if self.plane:centroid_y() < self.level.win_line_y then
+    if self.egg:y() < self.level.win_line_y then
         self.won     = true
         self.running = false
         return
